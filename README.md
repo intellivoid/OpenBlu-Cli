@@ -27,7 +27,8 @@ optional arguments:
   -l LIMIT, --limit LIMIT
                         Sets the limit of servers that are printed to stdout, defaults to 5. Only applicable when fetching servers
   --set-access-key      Saves your access key for future use, please note that if a config file is present in the current workdir, the --key option is
-                        ignored```
+                        ignored
+```
 
 ## Example: Retrieve up to 10 servers
   
