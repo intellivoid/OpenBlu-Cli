@@ -8,13 +8,13 @@ import json
 SYSTEMS = ('Linux', 'Windows')    # Supported Operating Systems
 ERROR_CODES = {300: "PLATFORM_INVALID",
                400: "NETWORK_ACCESS_FAILED",
-               500: "UNKOWN_ERROR"
+               500: "UNKNOWN_ERROR"
               }
 
 API_ENDPOINT = 'https://api.intellivoid.info/openblu/v1'  # You may setup your own API endpoint if you wish
 
 
-def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, str] = None, order_by: Union[None, str] = None, sort_by: Union[None, str] = None):
+def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, str] = None, order_by: Union[None, str] = None, sort_by: Union[None, str] = None, verbose: bool = True, key: Union[None, str] = None):
     """Fetches OpenVPN servers from the OpenBlu API
 
        :param endpoint: The API endpoint to contact and fetch the servers list from, defaults to 'https://api.intellivoid.info/openblu/v1'
@@ -25,11 +25,32 @@ def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, str] = No
        :type order_by: str, None, optional
        :param sort_by: Sorts the list by the given condition, defaults to ``None`` (no sorting)
        :type sort_by: str, None, optional
+       :param verbose: If ``True``, make the output verbose, default to ``False``
+       :type verbose: bool, optional
+       :param key: The OpenBlu API key, defaults to ``None``
+       :type key: str, None, optional
        :returns servers_list: The list of available servers with the specified filters
        :rtype servers_list: dict
     """
 
-    link = API_ENDPOINT + "/servers"
+    link = API_ENDPOINT + "/servers/list"
+    if verbose:
+        print(f"API key is {key}")
+        print(f"Fetching from {link}...")
+    link += f"?access_key={key}"
+    if filter_by:
+        link += "&filter=true"
+    if order_by:
+        link += "&order_by={order_by}"
+    if sort_by:
+        link += "&sort_by={sort_by}"
+    response = requests.get(link)
+    try:
+        data = json.loads(response.content)
+    except json.JSONDecoder.JSONDecodeError as decode_error:
+        print(f"The API did not send a properly formatted response, error: {decode_error}")
+    return data
+
 
 def openblu_windows(parsed_args):
     """Main entry point for Windows-specific openblu client UI
@@ -54,10 +75,10 @@ def openblu_linux(parsed_args):
     if parsed_args.fetch_servers:
         if parsed_args.verbose:
             print(f"Fetching available VPN servers from {API_ENDPOINT}\nCountry: {'Any' if not parsed_args.filter_by else parsed_args.filter_by}\nOrder: {None if not parsed_args.order_by else parsed_args.order_by}\nSorted by: {None if not parsed_args.sort_by else parsed_args.sort_by}")
-        servers_list = fetch_servers(API_ENDPOINT, parsed_args.filter_by, parsed_args.order_by, parsed_args.sort_by)
-        if not servers_list:
-            print("No servers were found with the specified filters, try changing them to allow a wider set of servers to match!")
-            exit(0)
+        servers_list = fetch_servers(API_ENDPOINT, parsed_args.filter_by, parsed_args.order_by, parsed_args.sort_by, parsed_args.verbose, api_key)
+        if not servers_list['success']:
+            print(f"Something went wrong when retrieving the servers! More details below\nHTTP Response Code: {servers_list['response_code']}\nAPI Error Code: {servers_list['error']['error_code']}\nAPI Error Message: {servers_list['error']['message']}\nAPI Error Type: {servers_list['error']['type']}")
+
 
 def setup_args(system: str):
     """Performs the necessary setup for the ``argparse`` module
