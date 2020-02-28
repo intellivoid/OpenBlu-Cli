@@ -5,6 +5,7 @@ from typing import Union
 import json
 from datetime import datetime
 import os
+from prettytable import PrettyTable
 
 
 SYSTEMS = ('Linux', 'Windows')    # Supported Operating Systems
@@ -103,7 +104,8 @@ def openblu(parsed_args):
         else:
             if parsed_args.verbose:
                 print(f"Success! Retrieved {len(servers_list['servers'])} servers matching the provided filters")
-            servers = ""
+            servers = PrettyTable()
+            servers.field_names = ["ID", "Hostname", "Country", "Country Short", "Score", "Ping (ms)", "Active Sessions", "Total Sessions", "Last Updated", "Created"]
             for x in range(parsed_args.limit):
                 if not servers_list['servers']:
                     break
@@ -121,7 +123,7 @@ def openblu(parsed_args):
                 total_sessions = server['total_sessions']
                 last_updated = datetime.utcfromtimestamp(server['last_updated']).strftime('%Y-%m-%d %H:%M:%S %p')
                 created = datetime.utcfromtimestamp(server['created']).strftime('%Y-%m-%d %H:%M:%S')
-                servers += f"Server No. {x + 1}\nID: {server_id}\nHostname: {host_name}\nCountry: {country}\nCountry Short: {country_short}\nScore: {score}\nPing: {ping}\nSessions: {sessions}\nTotal Sessions: {total_sessions}\nLast Updated: {last_updated}\nCreated: {created}\n\n"
+                servers.add_row([server_id, host_name, country, country_short, score, ping, sessions, total_sessions, last_updated, created])
             print(servers)
     elif parsed_args.set_access_key:
         try:
@@ -192,6 +194,9 @@ def setup_args(system: str):
         if not args.filter:
             print("Error: --filter-by requires --filter!")
             exit(1)
+    elif args.filter:
+        if not args.filter_by:
+            print("Error: --filter requires --filter-by!")
     openblu(args)
 
 

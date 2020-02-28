@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# OpenBlu config files and OVPN files
+*.ovpn
+openblu.key
