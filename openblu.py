@@ -15,11 +15,13 @@ ERROR_CODES = {300: "PLATFORM_INVALID",
 
 API_ENDPOINT = 'https://api.intellivoid.info/openblu/v1'  # You may setup your own API endpoint if you wish
 
-def get_server_info(uuid: str, verbose: bool = False):
+def get_server_info(uuid: str, key: str, verbose: bool = False):
     """Fetches a single OpenVPN server from the OpenBlu API, given its unique ID
 
        :param uuid: The unique ID of the desired server
        :type uuid: str
+       :param key: The OpenBlu API key
+       :type key: str
        :param verbose: If ``True``, make output verbose, default to ``False``
        :type verbose: bool, optional
        :returns: A dictionary containing the requested info, or ``None`` if the server doesn't exist
@@ -27,8 +29,19 @@ def get_server_info(uuid: str, verbose: bool = False):
     """
 
     link = API_ENDPOINT + "/servers/get"
-
-
+    if verbose:
+        print(f"API key is {key}")
+        print(f"Fetching from {link}...")
+    post_data = {}
+    post_data["access_key"] = key
+    post_data["id"] = uuid
+    response = requests.post(link, data=post_data)
+    try:
+        data = json.loads(response.content)
+    except json.JSONDecoder.JSONDecodeError as decode_error:
+        print(f"Error: The API did not send a properly formatted response, error: {decode_error}")
+        exit(decode_error)
+    return data
 
 def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, tuple] = None, order_by: Union[None, str] = None, sort_by: Union[None, str] = None, verbose: bool = True, key: Union[None, str] = None):
     """Fetches OpenVPN servers from the OpenBlu API
@@ -67,11 +80,12 @@ def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, tuple] = 
         data = json.loads(response.content)
     except json.JSONDecoder.JSONDecodeError as decode_error:
         print(f"Error: The API did not send a properly formatted response, error: {decode_error}")
+        exit(decode_error)
     return data
 
 
 def openblu(parsed_args):
-    """Main entry point for Linux-specific openblu client UI
+    """Main entry point for the OpenBlu client UI
 
        :param parsed_args: The result of ``argparse.ArgumentParser().parse_args()``
        :type parsed_args: class: Namespace
@@ -123,6 +137,23 @@ def openblu(parsed_args):
                 access_file.write(access_key)
         except PermissionError:
             print("Error: Could not create the configuration file due to a permission issue, please consider using the --key option or provide read/write access to the current working directory")
+    elif parsed_args.info:
+        server = get_server_info(parsed_args.info, api_key, parsed_args.verbose)
+        if server['success']:
+            if parsed_args.verbose:
+                print(f"Success, creating .ovpn file...")
+            try:
+                with open(os.path.join(os.getcwd(), f"{server['server']['id']}.ovpn"), "w") as access_file:
+                    access_file.write(server['server']['openvpn']['ovpn_configuration'])
+            except PermissionError:
+                print("Error: Could not create the .ovpn file for the server, please make sure that the program has read/write access to the current workdir")
+                exit(1)
+        elif server['response_code'] == 404:
+            print("Error: A VPN Server with that ID doesn't exist")
+            exit(1)
+        elif server['response_code'] not in (200, 404):
+            print(f"Error: Something went wrong when retrieving the servers! More details below\nHTTP Response Code: {server['response_code']}\nAPI Error Code: {server['error']['error_code']}\nAPI Error Message: {server['error']['message']}\nAPI Error Type: {server['error']['type']}")
+            exit(ERROR_CODES[500])
 
 def setup_args(system: str):
     """Performs the necessary setup for the ``argparse`` module and does some checks on the arguments
@@ -136,14 +167,14 @@ def setup_args(system: str):
     parser.add_argument("-b", "--connect-best", help="This flag tells the client to search for the best server to connect to", action='store_true')
     parser.add_argument("-c", "--country", help="Connects to the first available server in the chosen country, if any", type=str)
     parser.add_argument("-f", "--fetch-servers", help='Fetches all available OpenBlu VPN servers and shows them to the user', action='store_true')
-    parser.add_argument("-i", "--info", help='Fetches specific information about a server, given its unique ID', type=str)
+    parser.add_argument("-i", "--info", help='Fetches specific information about a server, given its unique ID. The .ovpn configuration is saved in the current workdir', type=str)
     parser.add_argument("--filter-by", help='Filters the retrieved servers list by country or country_short, requires --filter', type=str, choices=('country', 'country_short'))
     parser.add_argument("--filter", help='The value to filter by, e.g. japan, thailand, etc. Requires --filter-by')
     parser.add_argument("-o", "--order-by", help="Orders the results by score, ping, sessions, total_sessions, last_updated and created", choices=("score", "ping", "sessions", "total_sessions", "last_updated", "created"), type=str)
     parser.add_argument("-s", "--sort-by", help='Sorts the ordered results by descending or ascending order', choices=("ascending", "descending"), type=str)
     parser.add_argument("-v", "--verbose", help='Make the output verbose', action='store_true')
     parser.add_argument("-l", "--limit", help='Sets the limit of servers that are printed to stdout, defaults to 5. Only applicable when fetching servers', type=int, default=5)
-    parser.add_argument("--set-access-key", help='Saves your access key for future use, please note that if a config file is present in the current working dir, the --key option is ignored', action='store_true')
+    parser.add_argument("--set-access-key", help='Saves your access key for future use, please note that if a config file is present in the current workdir, the --key option is ignored', action='store_true')
     args = parser.parse_args()
     if os.path.isfile(os.path.join(os.getcwd(), "openblu.key")):
         try:
@@ -156,6 +187,11 @@ def setup_args(system: str):
             args.key = access_key
         else:
             print("Error: The configuration file is empty, try running openblu --set-access-key again or use the --key option")
+            exit(1)
+    if args.filter_by:
+        if not args.filter:
+            print("Error: --filter-by requires --filter!")
+            exit(1)
     openblu(args)
 
 
