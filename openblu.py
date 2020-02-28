@@ -14,7 +14,7 @@ ERROR_CODES = {300: "PLATFORM_INVALID",
 API_ENDPOINT = 'https://api.intellivoid.info/openblu/v1'  # You may setup your own API endpoint if you wish
 
 
-def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, str] = None, order_by: Union[None, str] = None, sort_by: Union[None, str]
+def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, str] = None, order_by: Union[None, str] = None, sort_by: Union[None, str] = None):
     """Fetches OpenVPN servers from the OpenBlu API
 
        :param endpoint: The API endpoint to contact and fetch the servers list from, defaults to 'https://api.intellivoid.info/openblu/v1'
@@ -53,8 +53,8 @@ def openblu_linux(parsed_args):
     api_key = parsed_args.key
     if parsed_args.fetch_servers:
         if parsed_args.verbose:
-            print(f"Fetching available VPN servers from {API_ENDPOINT}\nCountry: {'Any' if not parsed_args.filter_by else parsed_args.filter_by}\nOrder: {None if not parsed_args.order_by else parsed_args.order_by}\nSorted by: {None if not parsed_args.sort_by else parsed_args.sort_by")
-        servers_list = fetch_servers(API_ENDPOINT, parsed_args.filter_by, parsed_args.
+            print(f"Fetching available VPN servers from {API_ENDPOINT}\nCountry: {'Any' if not parsed_args.filter_by else parsed_args.filter_by}\nOrder: {None if not parsed_args.order_by else parsed_args.order_by}\nSorted by: {None if not parsed_args.sort_by else parsed_args.sort_by}")
+        servers_list = fetch_servers(API_ENDPOINT, parsed_args.filter_by, parsed_args.order_by, parsed_args.sort_by)
         if not servers_list:
             print("No servers were found with the specified filters, try changing them to allow a wider set of servers to match!")
             exit(0)
