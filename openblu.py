@@ -105,7 +105,10 @@ def openblu(parsed_args):
             if parsed_args.verbose:
                 print(f"Success! Retrieved {len(servers_list['servers'])} servers matching the provided filters")
             servers = PrettyTable()
-            servers.field_names = ["ID", "Hostname", "Country", "Country Short", "Score", "Ping (ms)", "Active Sessions", "Total Sessions", "Last Updated", "Created"]
+            if parsed_args.verbose:
+                servers.field_names = ["ID", "Hostname", "Country", "Country Short", "Score", "Ping (ms)", "Active Sessions", "Total Sessions", "Last Updated", "Created"]
+            else:
+                servers.field_names = ["ID", "Hostname", "Country", "Ping (ms)", "Active Sessions", "Last Updated"]
             for x in range(parsed_args.limit):
                 if not servers_list['servers']:
                     break
@@ -123,7 +126,10 @@ def openblu(parsed_args):
                 total_sessions = server['total_sessions']
                 last_updated = datetime.utcfromtimestamp(server['last_updated']).strftime('%Y-%m-%d %H:%M:%S %p')
                 created = datetime.utcfromtimestamp(server['created']).strftime('%Y-%m-%d %H:%M:%S')
-                servers.add_row([server_id, host_name, country, country_short, score, ping, sessions, total_sessions, last_updated, created])
+                if parsed_args.verbose:
+                    servers.add_row([server_id, host_name, country, country_short, score, ping, sessions, total_sessions, last_updated, created])
+                else:
+                    servers.add_row([server_id, host_name, country, ping, sessions, last_updated])
             print(servers)
     elif parsed_args.set_access_key:
         try:
