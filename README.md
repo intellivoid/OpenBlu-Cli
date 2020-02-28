@@ -2,6 +2,15 @@
 Official OpenBlu command-line interface to fetch and list available servers, filter them and connect to them with ease
 
 
+# Installation
+
+1. Clone the repo with git
+2. `cd` into the cloned repo
+3. `python3 -m pip install -r requirements.txt`
+
+Done!
+
+
 # Usage
 
 ```    
