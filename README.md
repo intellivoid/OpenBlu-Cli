@@ -58,5 +58,9 @@ Type here your access key: KEY HERE
 `python3 openblu.py -i ID`
 
 
-For more info, check [OpenBlu's Documentation](https://gist.github.com/Netkas/6d09bd76ad8a6eaee6a6229b17eb373f)
+## Example: Connect to the best server in a given country
 
+`python3 openblu.py --country canada --connect-best`
+
+
+For more info, check [OpenBlu's Documentation](https://gist.github.com/Netkas/6d09bd76ad8a6eaee6a6229b17eb373f)
