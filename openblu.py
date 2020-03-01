@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import os
 from prettytable import PrettyTable
+import subprocess
 
 
 SYSTEMS = ('Linux', 'Windows')    # Supported Operating Systems
@@ -15,6 +16,7 @@ ERROR_CODES = {300: "PLATFORM_INVALID",
               }
 
 API_ENDPOINT = 'https://api.intellivoid.info/openblu/v1'  # You may setup your own API endpoint if you wish
+
 
 def get_server_info(uuid: str, key: str, verbose: bool = False):
     """Fetches a single OpenVPN server from the OpenBlu API, given its unique ID
@@ -43,6 +45,7 @@ def get_server_info(uuid: str, key: str, verbose: bool = False):
         print(f"Error: The API did not send a properly formatted response, error: {decode_error}")
         exit(decode_error)
     return data
+
 
 def fetch_servers(endpoint: str = API_ENDPOINT, filter_by: Union[None, tuple] = None, order_by: Union[None, str] = None, sort_by: Union[None, str] = None, verbose: bool = True, key: Union[None, str] = None):
     """Fetches OpenVPN servers from the OpenBlu API
@@ -162,6 +165,50 @@ def openblu(parsed_args):
         elif server['response_code'] not in (200, 404):
             print(f"Error: Something went wrong when retrieving the servers! More details below\nHTTP Response Code: {server['response_code']}\nAPI Error Code: {server['error']['error_code']}\nAPI Error Message: {server['error']['message']}\nAPI Error Type: {server['error']['type']}")
             exit(ERROR_CODES[500])
+    elif parsed_args.country:
+        if parsed_args.connect_best:
+            print(f"Looking for the best server in selected country...")
+            servers_list = fetch_servers(API_ENDPOINT, ("country", parsed_args.country), parsed_args.order_by, parsed_args.sort_by, parsed_args.verbose, api_key)
+            if servers_list['success']:
+                if servers_list['servers']:
+                    server = max(servers_list['servers'], key=lambda x: x['last_updated'])
+                else:
+                    server = None
+            else:
+                print(f"Error: Something went wrong when retrieving the servers! More details below\nHTTP Response Code: {servers_list['response_code']}\nAPI Error Code: {servers_list['error']['error_code']}\nAPI Error Message: {servers_list['error']['message']}\nAPI Error Type: {servers_list['error']['type']}")
+                exit(ERROR_CODES[500])
+        else:
+            servers_list = fetch_servers(verbose=parsed_args.verbose)
+            if servers_list['success']:
+                if servers_list['servers']:
+                    server = servers_list['servers'][0]
+                else:
+                    server = None
+        if not server:
+            print("Error: No server found with given parameters")
+        else:
+            print("Connecting to found server...")
+            if parsed_args.verbose:
+                print("Retrieving info about the server...")
+            server = get_server_info(server['id'], api_key, parsed_args.verbose)
+            if server['success']:
+                if parsed_args.verbose:
+                    print(f"Success, creating .ovpn file...")
+                try:
+                    with open(os.path.join(os.getcwd(), f"{server['server']['id']}.ovpn"), "w") as access_file:
+                        access_file.write(server['server']['openvpn']['ovpn_configuration'])
+                except PermissionError:
+                    print("Error: Could not create the .ovpn file for the server, please make sure that the program has read/write access to the current workdir")
+                    exit(1)
+                if parsed_args.verbose:
+                    print(f"Spawning subprocess for OpenVPN with file '{server['id']}'")
+                process = subprocess.run(["openvpn", f"{server['server']['id']}.ovpn"])
+                if process.returncode != 0:
+                    print(f"Error: The OpenVPN process exited with error: {process.returncode}")
+            else:
+                print(f"Error: Something went wrong when retrieving the servers! More details below\nHTTP Response Code: {server['response_code']}\nAPI Error Code: {server['error']['error_code']}\nAPI Error Message: {server['error']['message']}\nAPI Error Type: {server['error']['type']}")
+                exit(ERROR_CODES[500])
+
 
 def setup_args(system: str):
     """Performs the necessary setup for the ``argparse`` module and does some checks on the arguments
