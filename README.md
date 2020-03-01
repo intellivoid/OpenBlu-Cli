@@ -7,6 +7,7 @@ Official OpenBlu command-line interface to fetch and list available servers, fil
 1. Clone the repo with git
 2. `cd` into the cloned repo
 3. `python3 -m pip install -r requirements.txt`
+4. `python3 -m setup.py install`
 
 Done!
 
