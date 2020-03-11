@@ -202,7 +202,7 @@ def openblu(parsed_args):
                     exit(1)
                 if parsed_args.verbose:
                     print(f"Spawning subprocess for OpenVPN with file '{server['id']}'")
-                process = subprocess.run(["openvpn", f"{server['server']['id']}.ovpn"])
+                process = subprocess.run(f"nohup openvpn --config {server['server']['id']}.ovpn &", shell=True)
                 if process.returncode != 0:
                     print(f"Error: The OpenVPN process exited with error: {process.returncode}")
             else:
