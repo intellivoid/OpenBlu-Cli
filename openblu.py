@@ -15,7 +15,7 @@ ERROR_CODES = {300: "PLATFORM_INVALID",
                500: "UNKNOWN_ERROR"
               }
 
-API_ENDPOINT = 'https://api.intellivoid.info/openblu/v1'  # You may setup your own API endpoint if you wish
+API_ENDPOINT = 'https://api.intellivoid.net/openblu/v1'  # You may setup your own API endpoint if you wish
 
 
 def get_server_info(uuid: str, key: str, verbose: bool = False):
